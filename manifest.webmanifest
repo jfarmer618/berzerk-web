@@ -1,0 +1,19 @@
+{
+  "name": "Berzerk Web Edition",
+  "short_name": "Berzerk",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#080c16",
+  "theme_color": "#080c16",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "id": "./",
+  "scope": "./",
+  "description": "A retro arcade maze game for touchscreens and keyboards, playable offline."
+}

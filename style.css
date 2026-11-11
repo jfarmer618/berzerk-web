@@ -1,0 +1,57 @@
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#080c16;color:#dfe9ff;font:600 14px system-ui,sans-serif}body{overscroll-behavior:none}#app{height:100dvh;display:flex;flex-direction:column;padding:max(6px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));gap:5px}header,nav{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}header{color:#7eff9d;font:700 15px monospace}nav{font:12px monospace}nav div{display:flex;gap:5px}button,select{background:#172543;color:#d9e6ff;border:1px solid #4265ab;border-radius:7px;padding:7px 9px;font-weight:700;cursor:pointer}button:active,.active{background:#3b5d9d!important}#layout{display:flex;flex:1;min-height:0;min-width:0;justify-content:center;align-items:center;gap:clamp(6px,2vw,30px)}#board{position:relative;height:100%;aspect-ratio:var(--room-ratio, 320 / 416);max-width:100%;max-height:100%;min-width:0;flex-shrink:1}canvas{display:block;width:100%;height:100%;background:#000;image-rendering:pixelated}#overlay{position:absolute;inset:0;background:#000b;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px}#overlay[hidden],#options[hidden]{display:none}.pad{width:clamp(106px,20vw,210px);aspect-ratio:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:3px;touch-action:none;user-select:none;flex-shrink:0}.pad button{padding:0;min-width:0;font-size:clamp(11px,2.3vw,20px);touch-action:none}.pad .empty{visibility:hidden}#fire button{border-color:#b33e52;background:#421a2a}#options{display:flex;justify-content:center;gap:15px;flex-wrap:wrap}footer{text-align:center;font:11px monospace;color:#8596b6}@media(orientation:portrait){#layout{flex-wrap:wrap;align-content:center;gap:8px}#board{order:0;flex:0 1 auto;height:min(68%,calc(100dvh - 245px));max-width:100%}#move{order:1}#fire{order:2}.pad{width:min(39vw,170px)}footer{font-size:9px}}@media(max-height:450px) and (orientation:landscape){header{font-size:12px}nav button{padding:3px 6px}footer{display:none}.pad{width:min(24vh,120px)}}
+/* Landscape: reserve compact touch pads and maximize the game board. */
+@media (orientation:landscape){#layout{gap:clamp(4px,1vw,14px)}#board{height:100%;width:auto;max-width:calc(100% - 2 * clamp(70px,15vw,160px) - 24px)}.pad{width:clamp(70px,15vw,160px)}}
+@media (orientation:portrait){#board{aspect-ratio:var(--room-ratio, 320 / 416)}}
+
+/* v4: actual board dimensions are computed from free viewport space. */
+#board{flex:none!important;min-width:0!important;max-width:none!important;max-height:none!important;aspect-ratio:auto!important;height:auto;width:auto}
+#layout{overflow:hidden}
+@media(orientation:landscape){#board{height:auto!important;width:auto!important;max-width:none!important}}
+@media(orientation:portrait){#board{height:auto!important;width:auto!important;max-width:none!important}}
+
+/* v5: landscape game occupies the entire central viewport.
+   Touch pads float over the lower corners instead of reserving columns. */
+#layout{position:relative;overflow:hidden;isolation:isolate}
+@media (orientation:landscape){
+ #layout{gap:0!important}
+ #board{order:0!important;flex:none!important;z-index:1}
+ .pad{position:absolute;bottom:8px;z-index:2;width:clamp(78px,12vw,138px)!important;opacity:.76}
+ #move{left:8px}#fire{right:8px}
+}
+@media (orientation:landscape) and (hover:hover) and (pointer:fine){
+ .pad{display:none!important}
+}
+@media (orientation:portrait){
+ #layout{gap:8px}
+ #board{order:0}
+ .pad{position:static;opacity:1}
+}
+
+/* v6: explicit override, consistent across Safari and Chrome */
+body.touch-hidden .pad{display:none!important}
+body.touch-visible .pad{display:grid!important}
+@media (orientation:landscape){body.touch-visible .pad{position:absolute!important;bottom:8px!important}}
+
+/* v7 iPad touch reliability: prevent native selection/callout and gesture handling. */
+.pad,.pad *,#board,canvas{
+ -webkit-user-select:none!important;user-select:none!important;
+ -webkit-touch-callout:none!important;
+ -webkit-tap-highlight-color:transparent;
+ touch-action:none!important;
+}
+.pad button{-webkit-appearance:none;appearance:none}
+
+/* v8: larger, more forgiving iPad direction targets. Landscape pads overlay
+   the board so increasing their size does not reduce the maze. */
+@media (orientation:landscape){
+ .pad{width:clamp(132px,19vw,208px)!important;gap:5px!important;bottom:10px!important;opacity:.86!important}
+ #move{left:10px!important}#fire{right:10px!important}
+ .pad button{font-size:clamp(18px,2.5vw,27px)!important;border-radius:10px!important}
+}
+@media (orientation:portrait){
+ .pad{width:min(46vw,215px)!important;gap:5px!important}
+ .pad button{font-size:clamp(18px,4.5vw,27px)!important;border-radius:10px!important}
+}
+
+/* v10: mobile/tablet players do not need desktop diagnostics or keyboard hints. */
+body.touch-visible footer{display:none!important}
