@@ -85,3 +85,7 @@ body.touch-device footer{display:none!important}
  header{font-size:12px}
  nav button{padding:4px 7px}
 }
+
+#options .controller-reference{display:flex;flex-direction:column;gap:5px;font:12px/1.35 monospace;border-top:1px solid #4265ab;padding-top:9px}
+#options .controller-reference strong{color:#7eff9d;margin-bottom:2px}
+#options .app-version{font:12px monospace;color:#aabddd;border-top:1px solid #4265ab;padding-top:9px}

@@ -50,3 +50,9 @@ On an iPad, tap **TOUCH: OFF** (initially **TOUCH: ON**) to hide the on-screen m
 - A button alone fires. Right stick and right trigger no longer control firing.
 - PWA cache bumped to v16.
 - SteelSeries Stratus XL has not been physically tested; if A still sticks, verify its live button state in a Gamepad API tester.
+
+
+## v17 changes
+- SteelSeries Stratus XL L1 (Gamepad API B4) toggles Pause/Resume, once per press.
+- Settings displays controller button reference and app version v17.
+- PWA cache bumped to v17.

@@ -93,7 +93,7 @@ function gamepadInputs(){
  // When stationary, the engine falls back to the player's last facing direction.
  // Only A fires; the right stick and triggers are intentionally ignored.
  const firing=pressed(0);
- const pause=pressed(9);
+ const pause=pressed(4); // Stratus XL L1, verified as B4 in Safari
  if(pause&&!gamepadState.pauseHeld)game=reducer(game,{type:'PAUSE'});
  gamepadState.pauseHeld=pause;
  return {move,fireDir:move,firing};
