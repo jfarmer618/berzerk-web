@@ -44,3 +44,9 @@ On an iPad, tap **TOUCH: OFF** (initially **TOUCH: ON**) to hide the on-screen m
 - Preserve v14 controller firing behavior, pause/resume, and touch toggle.
 - PWA cache updated to v15; online navigation now checks the network first and falls back to the cached page offline.
 - To test standalone mode, open via Add to Home Screen with Open as Web App enabled; direct Safari visits remain in Safari.
+
+## v16 controller changes
+- Left stick / D-pad determines both movement and firing direction. When stopped, the player keeps facing the last direction.
+- A button alone fires. Right stick and right trigger no longer control firing.
+- PWA cache bumped to v16.
+- SteelSeries Stratus XL has not been physically tested; if A still sticks, verify its live button state in a Gamepad API tester.

@@ -73,14 +73,14 @@ function drawSprite(kind,x,y,dir,walking,step,frame){const hero=kind==='hero',si
 function render(){ctx.fillStyle='#020202';ctx.fillRect(0,0,W,H);ctx.fillStyle=WALL_BLUE;for(const w of wallsFor(game.room))ctx.fillRect(w.x,w.y,w.w,w.h);for(const r of game.robots)drawSprite('bot',r.x,r.y,r.dir,false,0,game.tick);for(const b of game.shots){ctx.fillStyle=b.owner==='player'?'#f8e83c':'#f7f7f7';ctx.fillRect(b.x-3,b.y-3,6,6)}if(game.otto){const o=game.otto;ctx.fillStyle='#ff3a35';ctx.beginPath();ctx.arc(o.x,o.y+Math.sin(o.phase)*4,12,0,Math.PI*2);ctx.fill();ctx.fillStyle='#000';ctx.fillRect(o.x-6,o.y-4,3,3);ctx.fillRect(o.x+3,o.y-4,3,3);ctx.fillRect(o.x-5,o.y+5,10,2)}if(game.player.inv===0||game.tick%4<2)drawSprite('hero',game.player.x,game.player.y,game.player.dir,game.player.walking,game.player.step,game.tick);if(game.message){ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText(game.message,W/2,24)}$('score').textContent='1UP '+String(game.score).padStart(6,'0');$('high').textContent='HI '+String(Math.max(game.high,game.score)).padStart(6,'0');$('status').textContent='ROOM '+game.room+' · LIVES '+game.lives;$('pause').textContent=game.mode==='paused'?'RESUME':'PAUSE';$('overlay').hidden=game.mode==='playing';$('overlayTitle').textContent=game.mode==='paused'?'PAUSED':'GAME OVER';$('resume').hidden=game.mode!=='paused';$('sound').textContent='SOUND '+(sound?'ON':'OFF');}
 // Optional Bluetooth gamepad input. Standard Gamepad API mapping is used.
 // Some older controllers may expose a different mapping; see README.
-const gamepadState={pauseHeld:false,fireDir:null};
+const gamepadState={pauseHeld:false};
 function gamepadInputs(){
  const empty={move:null,fireDir:null,firing:false};
  if(typeof navigator.getGamepads!=='function')return empty;
  let pads;
  try{pads=navigator.getGamepads()}catch(_){return empty}
  const pad=Array.from(pads||[]).find(p=>p&&p.connected);
- if(!pad){gamepadState.pauseHeld=false;gamepadState.fireDir=null;return empty}
+ if(!pad){gamepadState.pauseHeld=false;return empty}
  const pressed=i=>Boolean(pad.buttons[i]?.pressed);
  const axis=i=>Number.isFinite(pad.axes[i])?pad.axes[i]:0;
  const stickDir=(x,y)=>Math.hypot(x,y)>=0.28?direction(x,y):null;
@@ -89,15 +89,14 @@ function gamepadInputs(){
  const dx=Number(pressed(15))-Number(pressed(14));
  const dy=Number(pressed(13))-Number(pressed(12));
  if(dx||dy)move=direction(dx,dy);
- const aim=stickDir(axis(2),axis(3));
- if(aim!==null)gamepadState.fireDir=aim;
- // A (0) or right trigger (7) fires using last aim, or facing direction.
- // Aim with the right stick; fire only when A or the right trigger is pressed.
- const firing=pressed(0)||pressed(7);
+ // The movement direction also determines the firing direction.
+ // When stationary, the engine falls back to the player's last facing direction.
+ // Only A fires; the right stick and triggers are intentionally ignored.
+ const firing=pressed(0);
  const pause=pressed(9);
  if(pause&&!gamepadState.pauseHeld)game=reducer(game,{type:'PAUSE'});
  gamepadState.pauseHeld=pause;
- return {move,fireDir:gamepadState.fireDir,firing};
+ return {move,fireDir:move,firing};
 }
 const moveKeys={'ArrowUp':0,'ArrowRight':2,'ArrowDown':4,'ArrowLeft':6,'w':0,'d':2,'s':4,'a':6};
 const fireKeys={'i':0,'o':1,'l':2,'.':3,'k':4,',':5,'j':6,'u':7,'Numpad8':0,'Numpad9':1,'Numpad6':2,'Numpad3':3,'Numpad2':4,'Numpad1':5,'Numpad4':6,'Numpad7':7};
