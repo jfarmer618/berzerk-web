@@ -55,3 +55,6 @@ body.touch-visible .pad{display:grid!important}
 
 /* v10: mobile/tablet players do not need desktop diagnostics or keyboard hints. */
 body.touch-visible footer{display:none!important}
+
+/* Keep the optional touch toggle hidden on non-touch computers. */
+#touchToggle[hidden]{display:none!important}

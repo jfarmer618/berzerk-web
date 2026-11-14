@@ -2,10 +2,15 @@
 const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;
 let game=start(DEFAULT),sound=game.settings.sound,keys=new Set(),touch={move:null,fireDir:null,firing:false};
 const $=id=>document.getElementById(id);
-// Automatically display pads when touch input is available; no toolbar toggle.
+// Touch controls can be hidden when using a Bluetooth gamepad.
+// Store the preference so it survives closing and reopening the installed PWA.
+const touchCapable=window.matchMedia('(any-pointer: coarse)').matches || (navigator.maxTouchPoints||0)>0;
+let showTouchControls=true;
+try{showTouchControls=localStorage.getItem('berzerk-show-touch-controls')!=='false'}catch(_){}
 function applyTouchMode(){
- const visible=window.matchMedia('(any-pointer: coarse)').matches ||
-   (navigator.maxTouchPoints||0)>0;
+ const visible=touchCapable && showTouchControls;
+ const toggle=$('touchToggle');
+ if(toggle){toggle.hidden=!touchCapable;toggle.textContent=visible?'TOUCH: ON':'TOUCH: OFF';}
  document.body.classList.toggle('touch-visible',visible);
  document.body.classList.toggle('touch-hidden',!visible);
  if(!visible)resetPads();
@@ -31,6 +36,7 @@ function adaptRoom(){
  if(readout)readout.textContent=`Maze ${W}×${H} • Display ${Math.floor(W*scale)}×${Math.floor(H*scale)} px`;
 }
 
+$('touchToggle').addEventListener('click',()=>{showTouchControls=!showTouchControls;try{localStorage.setItem('berzerk-show-touch-controls',String(showTouchControls))}catch(_){}applyTouchMode()});
 adaptRoom();window.addEventListener('resize',adaptRoom);window.addEventListener('orientationchange',()=>requestAnimationFrame(adaptRoom));if(window.ResizeObserver)new ResizeObserver(()=>requestAnimationFrame(adaptRoom)).observe($('layout'));
 
 const audio={};
@@ -56,6 +62,34 @@ window.addEventListener('pointerdown',unlockAudio,{capture:true});
 window.addEventListener('keydown',unlockAudio,{capture:true});
 function drawSprite(kind,x,y,dir,walking,step,frame){const hero=kind==='hero',side=dir===2||dir===6,diagonal=dir%2===1;let rows=hero?(side?HERO_SIDE:diagonal?HERO_DIAGONAL:dir===0?HERO_BACK:HERO_FRONT):(side||diagonal?ROBOT_SIDE:ROBOT_FRONT);rows=walkingLegs(rows,hero?(walking?Math.floor(step/3):0):Math.floor(frame/7));const mirror=dir>=5;const width=rows[0].length,height=rows.length;for(let i=0;i<height;i++)for(let j=0;j<width;j++){const c=rows[i][j];if(c==='.')continue;ctx.fillStyle=c==='G'?'#31ef49':'#f0444b';ctx.fillRect(Math.round(x-width+(mirror?(width-1-j):j)*2),Math.round(y-height+i*2),2,2);}}
 function render(){ctx.fillStyle='#020202';ctx.fillRect(0,0,W,H);ctx.fillStyle=WALL_BLUE;for(const w of wallsFor(game.room))ctx.fillRect(w.x,w.y,w.w,w.h);for(const r of game.robots)drawSprite('bot',r.x,r.y,r.dir,false,0,game.tick);for(const b of game.shots){ctx.fillStyle=b.owner==='player'?'#f8e83c':'#f7f7f7';ctx.fillRect(b.x-3,b.y-3,6,6)}if(game.otto){const o=game.otto;ctx.fillStyle='#ff3a35';ctx.beginPath();ctx.arc(o.x,o.y+Math.sin(o.phase)*4,12,0,Math.PI*2);ctx.fill();ctx.fillStyle='#000';ctx.fillRect(o.x-6,o.y-4,3,3);ctx.fillRect(o.x+3,o.y-4,3,3);ctx.fillRect(o.x-5,o.y+5,10,2)}if(game.player.inv===0||game.tick%4<2)drawSprite('hero',game.player.x,game.player.y,game.player.dir,game.player.walking,game.player.step,game.tick);if(game.message){ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText(game.message,W/2,24)}$('score').textContent='1UP '+String(game.score).padStart(6,'0');$('high').textContent='HI '+String(Math.max(game.high,game.score)).padStart(6,'0');$('status').textContent='ROOM '+game.room+' · LIVES '+game.lives;$('pause').textContent=game.mode==='paused'?'RESUME':'PAUSE';$('overlay').hidden=game.mode==='playing';$('overlayTitle').textContent=game.mode==='paused'?'PAUSED':'GAME OVER';$('sound').textContent='SOUND '+(sound?'ON':'OFF');}
+// Optional Bluetooth gamepad input. Standard Gamepad API mapping is used.
+// Some older controllers may expose a different mapping; see README.
+const gamepadState={pauseHeld:false,fireDir:null};
+function gamepadInputs(){
+ const empty={move:null,fireDir:null,firing:false};
+ if(typeof navigator.getGamepads!=='function')return empty;
+ let pads;
+ try{pads=navigator.getGamepads()}catch(_){return empty}
+ const pad=Array.from(pads||[]).find(p=>p&&p.connected);
+ if(!pad){gamepadState.pauseHeld=false;gamepadState.fireDir=null;return empty}
+ const pressed=i=>Boolean(pad.buttons[i]?.pressed);
+ const axis=i=>Number.isFinite(pad.axes[i])?pad.axes[i]:0;
+ const stickDir=(x,y)=>Math.hypot(x,y)>=0.28?direction(x,y):null;
+ // Standard mapping: left stick 0/1, right stick 2/3; D-pad 12-15.
+ let move=stickDir(axis(0),axis(1));
+ const dx=Number(pressed(15))-Number(pressed(14));
+ const dy=Number(pressed(13))-Number(pressed(12));
+ if(dx||dy)move=direction(dx,dy);
+ const aim=stickDir(axis(2),axis(3));
+ if(aim!==null)gamepadState.fireDir=aim;
+ // A (0) or right trigger (7) fires using last aim, or facing direction.
+ // Right stick automatically aims and fires, matching the touch fire pad.
+ const firing=aim!==null||pressed(0)||pressed(7);
+ const pause=pressed(9);
+ if(pause&&!gamepadState.pauseHeld)game=reducer(game,{type:'PAUSE'});
+ gamepadState.pauseHeld=pause;
+ return {move,fireDir:gamepadState.fireDir,firing};
+}
 const moveKeys={'ArrowUp':0,'ArrowRight':2,'ArrowDown':4,'ArrowLeft':6,'w':0,'d':2,'s':4,'a':6};
 const fireKeys={'i':0,'o':1,'l':2,'.':3,'k':4,',':5,'j':6,'u':7,'Numpad8':0,'Numpad9':1,'Numpad6':2,'Numpad3':3,'Numpad2':4,'Numpad1':5,'Numpad4':6,'Numpad7':7};
 function dirFromKeys(mapping){const active=Object.entries(mapping).filter(([k])=>keys.has(k)).map(([,v])=>v);if(!active.length)return null;if(mapping===moveKeys){const x=active.reduce((v,d)=>v+vec(d)[0],0),y=active.reduce((v,d)=>v+vec(d)[1],0);return x||y?direction(x,y):null}return active.at(-1)}
@@ -119,7 +153,7 @@ function makePad(id,kind){
 makePad('move','move');makePad('fire','fire');applyTouchMode();window.addEventListener('resize',applyTouchMode);
 $('pause').onclick=()=>game=reducer(game,{type:'PAUSE'});$('restart').onclick=()=>{game=reducer(game,{type:'RESET'});resetPads()};$('settings').onclick=()=>$('options').hidden=!$('options').hidden;$('sound').onclick=()=>{unlockAudio();sound=!sound;game=reducer(game,{type:'SETTINGS',patch:{sound}});if(sound)play('laser')};
 for(const name of ['difficulty','speed','controls'])$(name).onchange=e=>game=reducer(game,{type:'SETTINGS',patch:{[name]:e.target.value}});
-let prev=performance.now(),acc=0;function frame(now){acc=Math.min(acc+now-prev,200);prev=now;let steps=0;while(acc>=TICK&&steps++<5){const move=touch.move??dirFromKeys(moveKeys);const fd=touch.fireDir??dirFromKeys(fireKeys);const firing=touch.firing||fd!==null||keys.has('Space');const before=game;game=reducer(game,{type:'TICK',inputs:{move,fireDir:fd,firing}});if(game.room!==before.room)play('room');else if(game.lives<before.lives)play('player_hit');else if(game.score>before.score)play('robot_hit');else if(!before.otto&&game.otto)play('otto');else if(firing&&game.tick%5===0)play('laser');acc-=TICK}render();requestAnimationFrame(frame)}requestAnimationFrame(frame);
+let prev=performance.now(),acc=0;function frame(now){acc=Math.min(acc+now-prev,200);prev=now;let steps=0;const pad=gamepadInputs();while(acc>=TICK&&steps++<5){const move=touch.move??dirFromKeys(moveKeys)??pad.move;const keyboardFire=dirFromKeys(fireKeys);const fd=touch.fireDir??keyboardFire??(pad.firing?pad.fireDir:null);const firing=touch.firing||keyboardFire!==null||keys.has('Space')||pad.firing;const before=game;game=reducer(game,{type:'TICK',inputs:{move,fireDir:fd,firing}});if(game.room!==before.room)play('room');else if(game.lives<before.lives)play('player_hit');else if(game.score>before.score)play('robot_hit');else if(!before.otto&&game.otto)play('otto');else if(firing&&game.tick%5===0)play('laser');acc-=TICK}render();requestAnimationFrame(frame)}requestAnimationFrame(frame);
 // Production PWA: register the offline cache after page load.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
