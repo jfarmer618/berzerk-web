@@ -36,3 +36,11 @@ On an iPad, tap **TOUCH: OFF** (initially **TOUCH: ON**) to hide the on-screen m
 - When TOUCH: OFF, a PAUSE button remains visible over the game board.
 - Paused overlay includes RESUME.
 - Cache bumped to v14.
+
+## v15 fixes
+- SETTINGS opens a floating panel with Difficulty, Speed and Fire control selectors, so opening it no longer reduces the maze's space. SOUND remains in the main toolbar.
+- Maze scaling uses only the actual space available inside the layout, preventing the bottom from being clipped on small iPad screens.
+- Hide desktop diagnostics on touch devices even with TOUCH OFF.
+- Preserve v14 controller firing behavior, pause/resume, and touch toggle.
+- PWA cache updated to v15; online navigation now checks the network first and falls back to the cached page offline.
+- To test standalone mode, open via Add to Home Screen with Open as Web App enabled; direct Safari visits remain in Safari.

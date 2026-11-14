@@ -5,6 +5,7 @@ const $=id=>document.getElementById(id);
 // Touch controls can be hidden when using a Bluetooth gamepad.
 // Store the preference so it survives closing and reopening the installed PWA.
 const touchCapable=window.matchMedia('(any-pointer: coarse)').matches || (navigator.maxTouchPoints||0)>0;
+document.body.classList.toggle('touch-device',touchCapable);
 let showTouchControls=true;
 try{showTouchControls=localStorage.getItem('berzerk-show-touch-controls')!=='false'}catch(_){}
 function applyTouchMode(){
@@ -24,20 +25,28 @@ function adaptRoom(){
  canvas.width=W;canvas.height=H;ctx.imageSmoothingEnabled=false;
  const layout=$('layout'),board=$('board'),move=$('move'),fire=$('fire');
  const rect=layout.getBoundingClientRect();
- // In landscape, pads float above the board. They must not shrink its width.
- const availableW=rect.width-4;
- const availableH=landscape?rect.height-4:
-    rect.height-Math.max(move.offsetHeight,fire.offsetHeight)-18;
- const scale=Math.max(.1,Math.min(availableW/W,Math.max(60,availableH)/H));
- board.style.setProperty('width',Math.floor(W*scale)+'px','important');
- board.style.setProperty('height',Math.floor(H*scale)+'px','important');
+ // Layout already excludes header, nav, and footer; never oversize its board.
+ const availableW=Math.max(1,rect.width-4);
+ const padsVisible=touchCapable&&showTouchControls;
+ const padHeight=padsVisible&&!landscape?Math.max(move.offsetHeight,fire.offsetHeight):0;
+ const availableH=Math.max(1,rect.height-padHeight-(padHeight?18:4));
+ const scale=Math.max(0.01,Math.min(availableW/W,availableH/H));
+ const pixelW=Math.max(1,Math.floor(W*scale));
+ const pixelH=Math.max(1,Math.floor(H*scale));
+ board.style.setProperty('width',pixelW+'px','important');
+ board.style.setProperty('height',pixelH+'px','important');
  document.documentElement.style.setProperty('--room-ratio',`${W} / ${H}`);
  const readout=$('dimensions');
- if(readout)readout.textContent=`Maze ${W}×${H} • Display ${Math.floor(W*scale)}×${Math.floor(H*scale)} px`;
+ if(readout)readout.textContent=`Maze ${W}×${H} • Display ${pixelW}×${pixelH} px`;
 }
-
+function positionOptions(){
+ const nav=$('settings').closest('nav');
+ const app=$('app');
+ const bottom=nav.getBoundingClientRect().bottom-app.getBoundingClientRect().top;
+ app.style.setProperty('--options-top',Math.ceil(bottom+5)+'px');
+}
 $('touchToggle').addEventListener('click',()=>{showTouchControls=!showTouchControls;try{localStorage.setItem('berzerk-show-touch-controls',String(showTouchControls))}catch(_){}applyTouchMode()});
-adaptRoom();window.addEventListener('resize',adaptRoom);window.addEventListener('orientationchange',()=>requestAnimationFrame(adaptRoom));if(window.ResizeObserver)new ResizeObserver(()=>requestAnimationFrame(adaptRoom)).observe($('layout'));
+adaptRoom();positionOptions();window.addEventListener('resize',()=>{adaptRoom();positionOptions()});window.addEventListener('orientationchange',()=>requestAnimationFrame(()=>{adaptRoom();positionOptions()}));if(window.visualViewport)window.visualViewport.addEventListener('resize',()=>requestAnimationFrame(adaptRoom));if(window.ResizeObserver)new ResizeObserver(()=>requestAnimationFrame(adaptRoom)).observe($('layout'));
 
 const audio={};
 for(const name of ['laser','robot_hit','player_hit','room','otto']){
@@ -151,7 +160,7 @@ function makePad(id,kind){
  padResets.push(()=>{held.clear();sync()});
 }
 makePad('move','move');makePad('fire','fire');applyTouchMode();window.addEventListener('resize',applyTouchMode);
-$('pause').onclick=()=>game=reducer(game,{type:'PAUSE'});$('boardPause').onclick=()=>game=reducer(game,{type:'PAUSE'});$('resume').onclick=()=>game=reducer(game,{type:'PAUSE'});$('restart').onclick=()=>{game=reducer(game,{type:'RESET'});resetPads()};$('settings').onclick=()=>$('options').hidden=!$('options').hidden;$('sound').onclick=()=>{unlockAudio();sound=!sound;game=reducer(game,{type:'SETTINGS',patch:{sound}});if(sound)play('laser')};
+$('pause').onclick=()=>game=reducer(game,{type:'PAUSE'});$('boardPause').onclick=()=>game=reducer(game,{type:'PAUSE'});$('resume').onclick=()=>game=reducer(game,{type:'PAUSE'});$('restart').onclick=()=>{game=reducer(game,{type:'RESET'});resetPads()};$('settings').onclick=()=>{positionOptions();$('options').hidden=!$('options').hidden;$('settings').setAttribute('aria-expanded',String(!$('options').hidden));};$('sound').onclick=()=>{unlockAudio();sound=!sound;game=reducer(game,{type:'SETTINGS',patch:{sound}});if(sound)play('laser')};
 for(const name of ['difficulty','speed','controls'])$(name).onchange=e=>game=reducer(game,{type:'SETTINGS',patch:{[name]:e.target.value}});
 let prev=performance.now(),acc=0;function frame(now){acc=Math.min(acc+now-prev,200);prev=now;let steps=0;const pad=gamepadInputs();while(acc>=TICK&&steps++<5){const move=touch.move??dirFromKeys(moveKeys)??pad.move;const keyboardFire=dirFromKeys(fireKeys);const fd=touch.fireDir??keyboardFire??(pad.firing?pad.fireDir:null);const firing=touch.firing||keyboardFire!==null||keys.has('Space')||pad.firing;const before=game;game=reducer(game,{type:'TICK',inputs:{move,fireDir:fd,firing}});if(game.room!==before.room)play('room');else if(game.lives<before.lives)play('player_hit');else if(game.score>before.score)play('robot_hit');else if(!before.otto&&game.otto)play('otto');else if(firing&&game.tick%5===0)play('laser');acc-=TICK}render();requestAnimationFrame(frame)}requestAnimationFrame(frame);
 // Production PWA: register the offline cache after page load.

@@ -1,5 +1,5 @@
 // Version bump on every release makes offline updates predictable.
-const CACHE = 'berzerk-web-v14';
+const CACHE = 'berzerk-web-v15';
 const ASSETS = [
   './', './index.html', './style.css', './engine.js', './game.js',
   './icon.png', './manifest.webmanifest',
@@ -21,6 +21,19 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
   event.respondWith((async () => {
+    // Navigation: prefer the current online page; fall back to cached shell offline.
+    if (event.request.mode === 'navigate') {
+      try {
+        const response = await fetch(event.request);
+        if (response.ok) {
+          const cache = await caches.open(CACHE);
+          await cache.put('./index.html', response.clone());
+        }
+        return response;
+      } catch (_) {
+        return (await caches.match('./index.html')) || Response.error();
+      }
+    }
     const cached = await caches.match(event.request);
     if (cached) return cached;
     const response = await fetch(event.request);
