@@ -29,3 +29,10 @@ This release was syntax-checked but has **not** been runtime-tested on an actual
 
 ## v13: Touch control visibility
 On an iPad, tap **TOUCH: OFF** (initially **TOUCH: ON**) to hide the on-screen movement and firing pads when using a Bluetooth controller. Tap again to restore them. The choice is saved on the device. Keyboard and gamepad input continue to work with either setting.
+
+
+## v14 fixes
+- Right stick aims only; A or right trigger fires.
+- When TOUCH: OFF, a PAUSE button remains visible over the game board.
+- Paused overlay includes RESUME.
+- Cache bumped to v14.

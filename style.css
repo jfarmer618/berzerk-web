@@ -58,3 +58,14 @@ body.touch-visible footer{display:none!important}
 
 /* Keep the optional touch toggle hidden on non-touch computers. */
 #touchToggle[hidden]{display:none!important}
+
+/* v14: always-accessible pause control when touchscreen pads are hidden. */
+#boardPause{display:none;position:absolute;top:8px;right:8px;z-index:3;
+ font:700 12px monospace;padding:8px 11px;touch-action:manipulation!important;
+ -webkit-user-select:none;user-select:none;opacity:.92}
+body.touch-hidden #boardPause{display:block}
+#overlay{z-index:4}
+#resume[hidden]{display:none!important}
+/* Keep the main menu above the game, even on short landscape displays. */
+header,nav{flex-shrink:0}
+nav>div{flex-wrap:wrap}
