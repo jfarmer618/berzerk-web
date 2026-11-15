@@ -94,3 +94,7 @@ body.touch-device footer{display:none!important}
 
 /* v21: persistent score inside the game board, below iPad browser chrome. */
 #boardHud{position:absolute;top:5px;left:5px;right:5px;z-index:7;pointer-events:none;background:#061122e8;color:#7eff9d;border:1px solid #4265ab;border-radius:4px;text-align:center;font:bold clamp(10px,1.8vw,16px)/1.4 monospace;padding:4px 3px;white-space:nowrap}
+
+/* v23: hide the duplicate header behind iPad status-bar chrome; keep HUD inside board. */
+header{display:none!important}
+#boardHud{top:auto!important;bottom:8px!important;left:8px!important;right:8px!important;background:#061122!important;color:#7eff9d!important;border:2px solid #7eff9d!important;z-index:9!important;font:bold clamp(10px,1.8vw,16px)/1.4 monospace!important;padding:5px 2px!important}
