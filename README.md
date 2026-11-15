@@ -76,3 +76,5 @@ The diagnostic overlay is temporary and can be removed after testing.
 - A visible NEW GAME STARTED banner appears for 2.5 seconds.
 - Release both triggers before another reset can be triggered.
 - This code was syntax-checked but not tested on the user's iPad.
+
+Version 21: board HUD shows score/room/lives; gamepad reset diagnostics show before and after engine state.

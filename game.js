@@ -70,31 +70,18 @@ function play(name){
 window.addEventListener('pointerdown',unlockAudio,{capture:true});
 window.addEventListener('keydown',unlockAudio,{capture:true});
 function drawSprite(kind,x,y,dir,walking,step,frame){const hero=kind==='hero',side=dir===2||dir===6,diagonal=dir%2===1;let rows=hero?(side?HERO_SIDE:diagonal?HERO_DIAGONAL:dir===0?HERO_BACK:HERO_FRONT):(side||diagonal?ROBOT_SIDE:ROBOT_FRONT);rows=walkingLegs(rows,hero?(walking?Math.floor(step/3):0):Math.floor(frame/7));const mirror=dir>=5;const width=rows[0].length,height=rows.length;for(let i=0;i<height;i++)for(let j=0;j<width;j++){const c=rows[i][j];if(c==='.')continue;ctx.fillStyle=c==='G'?'#31ef49':'#f0444b';ctx.fillRect(Math.round(x-width+(mirror?(width-1-j):j)*2),Math.round(y-height+i*2),2,2);}}
-function render(){ctx.fillStyle='#020202';ctx.fillRect(0,0,W,H);ctx.fillStyle=WALL_BLUE;for(const w of wallsFor(game.room))ctx.fillRect(w.x,w.y,w.w,w.h);for(const r of game.robots)drawSprite('bot',r.x,r.y,r.dir,false,0,game.tick);for(const b of game.shots){ctx.fillStyle=b.owner==='player'?'#f8e83c':'#f7f7f7';ctx.fillRect(b.x-3,b.y-3,6,6)}if(game.otto){const o=game.otto;ctx.fillStyle='#ff3a35';ctx.beginPath();ctx.arc(o.x,o.y+Math.sin(o.phase)*4,12,0,Math.PI*2);ctx.fill();ctx.fillStyle='#000';ctx.fillRect(o.x-6,o.y-4,3,3);ctx.fillRect(o.x+3,o.y-4,3,3);ctx.fillRect(o.x-5,o.y+5,10,2)}if(game.player.inv===0||game.tick%4<2)drawSprite('hero',game.player.x,game.player.y,game.player.dir,game.player.walking,game.player.step,game.tick);if(game.message){ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText(game.message,W/2,24)}$('score').textContent='1UP '+String(game.score).padStart(6,'0');$('high').textContent='HI '+String(Math.max(game.high,game.score)).padStart(6,'0');$('status').textContent='ROOM '+game.room+' · LIVES '+game.lives;$('pause').textContent=game.mode==='paused'?'RESUME':'PAUSE';$('overlay').hidden=game.mode==='playing';$('overlayTitle').textContent=game.mode==='paused'?'PAUSED':'GAME OVER';$('resume').hidden=game.mode!=='paused';$('sound').textContent='SOUND '+(sound?'ON':'OFF');}
+function render(){ctx.fillStyle='#020202';ctx.fillRect(0,0,W,H);ctx.fillStyle=WALL_BLUE;for(const w of wallsFor(game.room))ctx.fillRect(w.x,w.y,w.w,w.h);for(const r of game.robots)drawSprite('bot',r.x,r.y,r.dir,false,0,game.tick);for(const b of game.shots){ctx.fillStyle=b.owner==='player'?'#f8e83c':'#f7f7f7';ctx.fillRect(b.x-3,b.y-3,6,6)}if(game.otto){const o=game.otto;ctx.fillStyle='#ff3a35';ctx.beginPath();ctx.arc(o.x,o.y+Math.sin(o.phase)*4,12,0,Math.PI*2);ctx.fill();ctx.fillStyle='#000';ctx.fillRect(o.x-6,o.y-4,3,3);ctx.fillRect(o.x+3,o.y-4,3,3);ctx.fillRect(o.x-5,o.y+5,10,2)}if(game.player.inv===0||game.tick%4<2)drawSprite('hero',game.player.x,game.player.y,game.player.dir,game.player.walking,game.player.step,game.tick);if(game.message){ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText(game.message,W/2,24)}$('boardHud').textContent='SCORE '+String(game.score).padStart(6,'0')+'  |  ROOM '+game.room+'  |  LIVES '+game.lives;$('score').textContent='1UP '+String(game.score).padStart(6,'0');$('high').textContent='HI '+String(Math.max(game.high,game.score)).padStart(6,'0');$('status').textContent='ROOM '+game.room+' · LIVES '+game.lives;$('pause').textContent=game.mode==='paused'?'RESUME':'PAUSE';$('overlay').hidden=game.mode==='playing';$('overlayTitle').textContent=game.mode==='paused'?'PAUSED':'GAME OVER';$('restart').textContent=game.mode==='gameover'?'PRESS Y FOR NEW GAME':'NEW GAME';$('resume').hidden=game.mode!=='paused';$('sound').textContent='SOUND '+(sound?'ON':'OFF');}
 // Optional Bluetooth gamepad input. Standard Gamepad API mapping is used.
 // Some older controllers may expose a different mapping; see README.
-const gamepadState={l1Held:false,comboStart:null,comboTriggered:false,restartCount:0,confirmationUntil:0};
-const diagnostic=$('controllerDiagnostic');
-function showControllerDiagnostic(pads,selected,combo,elapsed,now){
- const entries=Array.from(pads||[]).filter(Boolean);
- const read=(pad,i)=>{const b=pad?.buttons?.[i];return b?`B${i}: ${b.pressed?'P':'-'} value=${Number(b.value||0).toFixed(2)}`:`B${i}: missing`};
- const status=gamepadState.comboTriggered?'RESTART SENT — RELEASE BOTH TRIGGERS':combo?'HOLDING':'READY';
- diagnostic.textContent=selected
-   ?`CONTROLLER TEST v20 | pad ${selected.index} of ${entries.length} | ${selected.mapping||'unmapped'}\n${read(selected,4)} | ${read(selected,6)} | ${read(selected,7)}\nL2+R2: ${combo?'YES':'NO'} | Hold: ${(Math.min(elapsed,2000)/1000).toFixed(1)}s / 2.0s\n${status} | Resets sent: ${gamepadState.restartCount}`
-   :'CONTROLLER TEST v20 | No connected gamepad';
- const banner=$('restartCountdown');
- if(gamepadState.confirmationUntil>now){banner.textContent='NEW GAME STARTED — RELEASE L2 + R2';banner.hidden=false}
- else if(combo&&!gamepadState.comboTriggered&&gamepadState.comboStart!==null){banner.textContent='NEW GAME IN '+Math.ceil((2000-elapsed)/1000)+'…';banner.hidden=false}
- else banner.hidden=true;
-}
+const gamepadState={l1Held:false,yHeld:false};
 function gamepadInputs(){
  const empty={move:null,fireDir:null,firing:false};
- const clear=()=>{gamepadState.l1Held=false;gamepadState.comboStart=null;gamepadState.comboTriggered=false;gamepadState.confirmationUntil=0;$('restartCountdown').hidden=true};
- if(typeof navigator.getGamepads!=='function'){clear();diagnostic.textContent='CONTROLLER TEST v20 | Gamepad API unavailable';return empty}
+ const clear=()=>{gamepadState.l1Held=false;gamepadState.yHeld=false};
+ if(typeof navigator.getGamepads!=='function'){clear();return empty}
  let pads;
  try{pads=navigator.getGamepads()}catch(_){clear();return empty}
  const pad=Array.from(pads||[]).find(p=>p&&p.connected);
- if(!pad){clear();showControllerDiagnostic(pads,null,false,0,performance.now());return empty}
+ if(!pad){clear();return empty}
  const pressed=i=>Boolean(pad.buttons[i]?.pressed);
  const axis=i=>Number.isFinite(pad.axes[i])?pad.axes[i]:0;
  const stickDir=(x,y)=>Math.hypot(x,y)>=0.28?direction(x,y):null;
@@ -102,27 +89,14 @@ function gamepadInputs(){
  const dx=Number(pressed(15))-Number(pressed(14));
  const dy=Number(pressed(13))-Number(pressed(12));
  if(dx||dy)move=direction(dx,dy);
- const l1=pressed(4);
- const triggerActive=i=>pressed(i)||(pad.buttons[i]?.value??0)>0.5;
- const left=triggerActive(6),right=triggerActive(7),combo=left&&right;
- const now=performance.now();
- if(combo){
-   if(gamepadState.comboStart===null&&!gamepadState.comboTriggered)gamepadState.comboStart=now;
-   if(!gamepadState.comboTriggered&&now-gamepadState.comboStart>=2000){
-     game=reducer(game,{type:'RESET'});
-     resetPads();
-     gamepadState.restartCount++;
-     gamepadState.comboTriggered=true;
-     gamepadState.confirmationUntil=now+2500;
-   }
- }else{
-   gamepadState.comboStart=null;
-   if(!left&&!right)gamepadState.comboTriggered=false;
- }
- const elapsed=combo&&gamepadState.comboStart!==null?now-gamepadState.comboStart:0;
- showControllerDiagnostic(pads,pad,combo,elapsed,now);
- if(l1&&!gamepadState.l1Held)game=reducer(game,{type:'PAUSE'});
+ const l1=pressed(4),y=pressed(3);
+ if(l1&&!gamepadState.l1Held&&game.mode!=='gameover')game=reducer(game,{type:'PAUSE'});
  gamepadState.l1Held=l1;
+ if(y&&!gamepadState.yHeld&&game.mode==='gameover'){
+   game=reducer(game,{type:'RESET'});
+   resetPads();
+ }
+ gamepadState.yHeld=y;
  return {move,fireDir:move,firing:pressed(0)};
 }
 const moveKeys={'ArrowUp':0,'ArrowRight':2,'ArrowDown':4,'ArrowLeft':6,'w':0,'d':2,'s':4,'a':6};
