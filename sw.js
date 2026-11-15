@@ -1,5 +1,5 @@
 // Version bump on every release makes offline updates predictable.
-const CACHE = "berzerk-web-v30";
+const CACHE = "berzerk-web-v31";
 const ASSETS = [
   "./",
   "./index.html",

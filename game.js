@@ -19,10 +19,10 @@
       localStorage.getItem("berzerk-show-touch-controls") !== "false";
   } catch (_) {}
   function applyTouchMode() {
-    const visible = touchCapable && showTouchControls;
+    const visible = showTouchControls;
     const toggle = $("touchToggle");
     if (toggle) {
-      toggle.hidden = !touchCapable;
+      toggle.hidden = false;
       toggle.textContent = visible ? "TOUCH: ON" : "TOUCH: OFF";
     }
     document.body.classList.toggle("touch-visible", visible);
@@ -221,13 +221,11 @@
     $("score").textContent = "1UP " + String(game.score).padStart(6, "0");
     $("high").textContent =
       "HI " + String(Math.max(game.high, game.score)).padStart(6, "0");
-    $("status").textContent = "ROOM " + game.room + " · LIVES " + game.lives;
     $("pause").textContent = game.mode === "paused" ? "RESUME" : "PAUSE";
     $("overlay").hidden = game.mode === "playing";
     $("overlayTitle").textContent =
       game.mode === "paused" ? "PAUSED" : "GAME OVER";
-    $("restart").textContent =
-      game.mode === "gameover" ? "PRESS Y FOR NEW GAME" : "NEW GAME";
+    $("restart").textContent = "NEW GAME";
 
     $("restart").hidden = game.mode !== "gameover";
 
