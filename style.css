@@ -180,6 +180,7 @@ body.touch-hidden #boardPause {
 #overlay[hidden],
 #options[hidden],
 #resume[hidden],
+#restart[hidden],
 #touchToggle[hidden] {
   display: none !important;
 }

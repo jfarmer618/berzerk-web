@@ -228,6 +228,9 @@
       game.mode === "paused" ? "PAUSED" : "GAME OVER";
     $("restart").textContent =
       game.mode === "gameover" ? "PRESS Y FOR NEW GAME" : "NEW GAME";
+
+    $("restart").hidden = game.mode !== "gameover";
+
     $("resume").hidden = game.mode !== "paused";
     $("sound").textContent = "SOUND " + (sound ? "ON" : "OFF");
   }
