@@ -92,3 +92,5 @@ body.touch-device footer{display:none!important}
 
 #restartCountdown{position:absolute;top:48%;left:50%;transform:translate(-50%,-50%);z-index:6;background:#081327e8;border:2px solid #7eff9d;border-radius:8px;color:#7eff9d;font:bold clamp(12px,2vw,19px) monospace;white-space:nowrap;padding:10px 15px;pointer-events:none}
 #restartCountdown[hidden]{display:none}
+
+#controllerDiagnostic{position:absolute;left:5px;bottom:5px;right:5px;z-index:8;pointer-events:none;background:#071020df;border:1px solid #f6d365;color:#fff0b1;padding:5px 6px;border-radius:4px;font:clamp(8px,1.25vw,12px)/1.35 monospace;white-space:pre-wrap;overflow-wrap:anywhere}

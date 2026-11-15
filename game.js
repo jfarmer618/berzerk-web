@@ -74,14 +74,26 @@ function render(){ctx.fillStyle='#020202';ctx.fillRect(0,0,W,H);ctx.fillStyle=WA
 // Optional Bluetooth gamepad input. Standard Gamepad API mapping is used.
 // Some older controllers may expose a different mapping; see README.
 const gamepadState={l1Held:false,comboStart:null,comboTriggered:false,comboWasActive:false};
+const diagnostic=$('controllerDiagnostic');
+function showControllerDiagnostic(pads,selected,combo,elapsed){
+ const entries=Array.from(pads||[]).filter(Boolean);
+ const read=(pad,i)=>{
+   const b=pad?.buttons?.[i];
+   return b?`B${i}: ${b.pressed?'P':'-'} value=${Number(b.value||0).toFixed(2)}`:`B${i}: missing`;
+ };
+ diagnostic.textContent=selected
+   ?`CONTROLLER TEST v19 | pad ${selected.index} of ${entries.length} | ${selected.mapping||'unmapped'}\n${read(selected,4)} | ${read(selected,6)} | ${read(selected,7)}\nL2+R2 detected: ${combo?'YES':'NO'} | Hold: ${(elapsed/1000).toFixed(1)}s / 2.0s`
+   :`CONTROLLER TEST v19 | No connected gamepad`;
+}
+
 function gamepadInputs(){
  const empty={move:null,fireDir:null,firing:false};
  const clear=()=>{gamepadState.l1Held=false;gamepadState.comboStart=null;gamepadState.comboTriggered=false;gamepadState.comboWasActive=false;$('restartCountdown').hidden=true};
- if(typeof navigator.getGamepads!=='function'){clear();return empty}
+ if(typeof navigator.getGamepads!=='function'){clear();diagnostic.textContent='CONTROLLER TEST v19 | Gamepad API unavailable';return empty}
  let pads;
  try{pads=navigator.getGamepads()}catch(_){clear();return empty}
  const pad=Array.from(pads||[]).find(p=>p&&p.connected);
- if(!pad){clear();return empty}
+ if(!pad){clear();showControllerDiagnostic(pads,null,false,0);return empty}
  const pressed=i=>Boolean(pad.buttons[i]?.pressed);
  const axis=i=>Number.isFinite(pad.axes[i])?pad.axes[i]:0;
  const stickDir=(x,y)=>Math.hypot(x,y)>=0.28?direction(x,y):null;
@@ -90,8 +102,12 @@ function gamepadInputs(){
  const dy=Number(pressed(13))-Number(pressed(12));
  if(dx||dy)move=direction(dx,dy);
  // Stratus XL: L1=B4 pause; L2=B6 + R2=B7 held 2s resets.
- const l1=pressed(4), combo=pressed(6)&&pressed(7);
+ const l1=pressed(4);
+ // Diagnostics also show analog values; threshold avoids relying solely on .pressed.
+ const triggerActive=i=>pressed(i)||(pad.buttons[i]?.value??0)>0.5;
+ const combo=triggerActive(6)&&triggerActive(7);
  const now=performance.now();
+ showControllerDiagnostic(pads,pad,combo,combo&&gamepadState.comboStart!==null?now-gamepadState.comboStart:0);
  if(combo){
    if(gamepadState.comboStart===null && !gamepadState.comboTriggered)gamepadState.comboStart=now;
    if(!gamepadState.comboTriggered){
@@ -108,7 +124,7 @@ function gamepadInputs(){
    gamepadState.comboStart=null;
    $('restartCountdown').hidden=true;
    // Require both triggers released before another restart is armed.
-   if(!pressed(6)&&!pressed(7))gamepadState.comboTriggered=false;
+   if(!triggerActive(6)&&!triggerActive(7))gamepadState.comboTriggered=false;
  }
  // L1 toggles only on a fresh press, independent of the restart triggers.
  if(l1&&!gamepadState.l1Held)game=reducer(game,{type:'PAUSE'});

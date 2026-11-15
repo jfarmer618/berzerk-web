@@ -63,3 +63,9 @@ On an iPad, tap **TOUCH: OFF** (initially **TOUCH: ON**) to hide the on-screen m
 - Countdown appears during hold. Releasing either trigger cancels; both must be released before rearming.
 - L1 (B4) still toggles pause/resume; A (B0) fires.
 - Settings reference and version updated to v18; offline cache version updated.
+
+## v19 temporary controller diagnostics
+The yellow text box at the bottom of the game shows selected Gamepad API index, mapping,
+B4/B6/B7 pressed flags and analog values, whether the combination is detected, and hold duration.
+Use this diagnostic build to report what happens when L2 and R2 are held together.
+The diagnostic overlay is temporary and can be removed after testing.
