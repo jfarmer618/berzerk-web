@@ -56,3 +56,10 @@ On an iPad, tap **TOUCH: OFF** (initially **TOUCH: ON**) to hide the on-screen m
 - SteelSeries Stratus XL L1 (Gamepad API B4) toggles Pause/Resume, once per press.
 - Settings displays controller button reference and app version v17.
 - PWA cache bumped to v17.
+
+
+## v18
+- L2 (B6) and R2 (B7) held together for 2 seconds start a new game.
+- Countdown appears during hold. Releasing either trigger cancels; both must be released before rearming.
+- L1 (B4) still toggles pause/resume; A (B0) fires.
+- Settings reference and version updated to v18; offline cache version updated.

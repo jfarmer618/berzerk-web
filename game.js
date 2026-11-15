@@ -73,30 +73,47 @@ function drawSprite(kind,x,y,dir,walking,step,frame){const hero=kind==='hero',si
 function render(){ctx.fillStyle='#020202';ctx.fillRect(0,0,W,H);ctx.fillStyle=WALL_BLUE;for(const w of wallsFor(game.room))ctx.fillRect(w.x,w.y,w.w,w.h);for(const r of game.robots)drawSprite('bot',r.x,r.y,r.dir,false,0,game.tick);for(const b of game.shots){ctx.fillStyle=b.owner==='player'?'#f8e83c':'#f7f7f7';ctx.fillRect(b.x-3,b.y-3,6,6)}if(game.otto){const o=game.otto;ctx.fillStyle='#ff3a35';ctx.beginPath();ctx.arc(o.x,o.y+Math.sin(o.phase)*4,12,0,Math.PI*2);ctx.fill();ctx.fillStyle='#000';ctx.fillRect(o.x-6,o.y-4,3,3);ctx.fillRect(o.x+3,o.y-4,3,3);ctx.fillRect(o.x-5,o.y+5,10,2)}if(game.player.inv===0||game.tick%4<2)drawSprite('hero',game.player.x,game.player.y,game.player.dir,game.player.walking,game.player.step,game.tick);if(game.message){ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText(game.message,W/2,24)}$('score').textContent='1UP '+String(game.score).padStart(6,'0');$('high').textContent='HI '+String(Math.max(game.high,game.score)).padStart(6,'0');$('status').textContent='ROOM '+game.room+' · LIVES '+game.lives;$('pause').textContent=game.mode==='paused'?'RESUME':'PAUSE';$('overlay').hidden=game.mode==='playing';$('overlayTitle').textContent=game.mode==='paused'?'PAUSED':'GAME OVER';$('resume').hidden=game.mode!=='paused';$('sound').textContent='SOUND '+(sound?'ON':'OFF');}
 // Optional Bluetooth gamepad input. Standard Gamepad API mapping is used.
 // Some older controllers may expose a different mapping; see README.
-const gamepadState={pauseHeld:false};
+const gamepadState={l1Held:false,comboStart:null,comboTriggered:false,comboWasActive:false};
 function gamepadInputs(){
  const empty={move:null,fireDir:null,firing:false};
- if(typeof navigator.getGamepads!=='function')return empty;
+ const clear=()=>{gamepadState.l1Held=false;gamepadState.comboStart=null;gamepadState.comboTriggered=false;gamepadState.comboWasActive=false;$('restartCountdown').hidden=true};
+ if(typeof navigator.getGamepads!=='function'){clear();return empty}
  let pads;
- try{pads=navigator.getGamepads()}catch(_){return empty}
+ try{pads=navigator.getGamepads()}catch(_){clear();return empty}
  const pad=Array.from(pads||[]).find(p=>p&&p.connected);
- if(!pad){gamepadState.pauseHeld=false;return empty}
+ if(!pad){clear();return empty}
  const pressed=i=>Boolean(pad.buttons[i]?.pressed);
  const axis=i=>Number.isFinite(pad.axes[i])?pad.axes[i]:0;
  const stickDir=(x,y)=>Math.hypot(x,y)>=0.28?direction(x,y):null;
- // Standard mapping: left stick 0/1, right stick 2/3; D-pad 12-15.
  let move=stickDir(axis(0),axis(1));
  const dx=Number(pressed(15))-Number(pressed(14));
  const dy=Number(pressed(13))-Number(pressed(12));
  if(dx||dy)move=direction(dx,dy);
- // The movement direction also determines the firing direction.
- // When stationary, the engine falls back to the player's last facing direction.
- // Only A fires; the right stick and triggers are intentionally ignored.
- const firing=pressed(0);
- const pause=pressed(4); // Stratus XL L1, verified as B4 in Safari
- if(pause&&!gamepadState.pauseHeld)game=reducer(game,{type:'PAUSE'});
- gamepadState.pauseHeld=pause;
- return {move,fireDir:move,firing};
+ // Stratus XL: L1=B4 pause; L2=B6 + R2=B7 held 2s resets.
+ const l1=pressed(4), combo=pressed(6)&&pressed(7);
+ const now=performance.now();
+ if(combo){
+   if(gamepadState.comboStart===null && !gamepadState.comboTriggered)gamepadState.comboStart=now;
+   if(!gamepadState.comboTriggered){
+     const elapsed=now-gamepadState.comboStart;
+     if(elapsed>=2000){
+       game=reducer(game,{type:'RESET'});resetPads();
+       gamepadState.comboTriggered=true;$('restartCountdown').hidden=true;
+     }else{
+       $('restartCountdown').textContent='NEW GAME IN '+Math.ceil((2000-elapsed)/1000)+'…';
+       $('restartCountdown').hidden=false;
+     }
+   }
+ }else{
+   gamepadState.comboStart=null;
+   $('restartCountdown').hidden=true;
+   // Require both triggers released before another restart is armed.
+   if(!pressed(6)&&!pressed(7))gamepadState.comboTriggered=false;
+ }
+ // L1 toggles only on a fresh press, independent of the restart triggers.
+ if(l1&&!gamepadState.l1Held)game=reducer(game,{type:'PAUSE'});
+ gamepadState.l1Held=l1;
+ return {move,fireDir:move,firing:pressed(0)};
 }
 const moveKeys={'ArrowUp':0,'ArrowRight':2,'ArrowDown':4,'ArrowLeft':6,'w':0,'d':2,'s':4,'a':6};
 const fireKeys={'i':0,'o':1,'l':2,'.':3,'k':4,',':5,'j':6,'u':7,'Numpad8':0,'Numpad9':1,'Numpad6':2,'Numpad3':3,'Numpad2':4,'Numpad1':5,'Numpad4':6,'Numpad7':7};

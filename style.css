@@ -89,3 +89,6 @@ body.touch-device footer{display:none!important}
 #options .controller-reference{display:flex;flex-direction:column;gap:5px;font:12px/1.35 monospace;border-top:1px solid #4265ab;padding-top:9px}
 #options .controller-reference strong{color:#7eff9d;margin-bottom:2px}
 #options .app-version{font:12px monospace;color:#aabddd;border-top:1px solid #4265ab;padding-top:9px}
+
+#restartCountdown{position:absolute;top:48%;left:50%;transform:translate(-50%,-50%);z-index:6;background:#081327e8;border:2px solid #7eff9d;border-radius:8px;color:#7eff9d;font:bold clamp(12px,2vw,19px) monospace;white-space:nowrap;padding:10px 15px;pointer-events:none}
+#restartCountdown[hidden]{display:none}
