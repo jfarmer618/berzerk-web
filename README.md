@@ -69,3 +69,10 @@ The yellow text box at the bottom of the game shows selected Gamepad API index, 
 B4/B6/B7 pressed flags and analog values, whether the combination is detected, and hold duration.
 Use this diagnostic build to report what happens when L2 and R2 are held together.
 The diagnostic overlay is temporary and can be removed after testing.
+
+## v20 restart confirmation
+- Hold L2 (B6) and R2 (B7) together for two seconds to send a new-game reset.
+- Diagnostic hold display stops at 2.0s; reset count increments when RESET is dispatched.
+- A visible NEW GAME STARTED banner appears for 2.5 seconds.
+- Release both triggers before another reset can be triggered.
+- This code was syntax-checked but not tested on the user's iPad.

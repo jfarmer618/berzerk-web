@@ -73,27 +73,28 @@ function drawSprite(kind,x,y,dir,walking,step,frame){const hero=kind==='hero',si
 function render(){ctx.fillStyle='#020202';ctx.fillRect(0,0,W,H);ctx.fillStyle=WALL_BLUE;for(const w of wallsFor(game.room))ctx.fillRect(w.x,w.y,w.w,w.h);for(const r of game.robots)drawSprite('bot',r.x,r.y,r.dir,false,0,game.tick);for(const b of game.shots){ctx.fillStyle=b.owner==='player'?'#f8e83c':'#f7f7f7';ctx.fillRect(b.x-3,b.y-3,6,6)}if(game.otto){const o=game.otto;ctx.fillStyle='#ff3a35';ctx.beginPath();ctx.arc(o.x,o.y+Math.sin(o.phase)*4,12,0,Math.PI*2);ctx.fill();ctx.fillStyle='#000';ctx.fillRect(o.x-6,o.y-4,3,3);ctx.fillRect(o.x+3,o.y-4,3,3);ctx.fillRect(o.x-5,o.y+5,10,2)}if(game.player.inv===0||game.tick%4<2)drawSprite('hero',game.player.x,game.player.y,game.player.dir,game.player.walking,game.player.step,game.tick);if(game.message){ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText(game.message,W/2,24)}$('score').textContent='1UP '+String(game.score).padStart(6,'0');$('high').textContent='HI '+String(Math.max(game.high,game.score)).padStart(6,'0');$('status').textContent='ROOM '+game.room+' · LIVES '+game.lives;$('pause').textContent=game.mode==='paused'?'RESUME':'PAUSE';$('overlay').hidden=game.mode==='playing';$('overlayTitle').textContent=game.mode==='paused'?'PAUSED':'GAME OVER';$('resume').hidden=game.mode!=='paused';$('sound').textContent='SOUND '+(sound?'ON':'OFF');}
 // Optional Bluetooth gamepad input. Standard Gamepad API mapping is used.
 // Some older controllers may expose a different mapping; see README.
-const gamepadState={l1Held:false,comboStart:null,comboTriggered:false,comboWasActive:false};
+const gamepadState={l1Held:false,comboStart:null,comboTriggered:false,restartCount:0,confirmationUntil:0};
 const diagnostic=$('controllerDiagnostic');
-function showControllerDiagnostic(pads,selected,combo,elapsed){
+function showControllerDiagnostic(pads,selected,combo,elapsed,now){
  const entries=Array.from(pads||[]).filter(Boolean);
- const read=(pad,i)=>{
-   const b=pad?.buttons?.[i];
-   return b?`B${i}: ${b.pressed?'P':'-'} value=${Number(b.value||0).toFixed(2)}`:`B${i}: missing`;
- };
+ const read=(pad,i)=>{const b=pad?.buttons?.[i];return b?`B${i}: ${b.pressed?'P':'-'} value=${Number(b.value||0).toFixed(2)}`:`B${i}: missing`};
+ const status=gamepadState.comboTriggered?'RESTART SENT — RELEASE BOTH TRIGGERS':combo?'HOLDING':'READY';
  diagnostic.textContent=selected
-   ?`CONTROLLER TEST v19 | pad ${selected.index} of ${entries.length} | ${selected.mapping||'unmapped'}\n${read(selected,4)} | ${read(selected,6)} | ${read(selected,7)}\nL2+R2 detected: ${combo?'YES':'NO'} | Hold: ${(elapsed/1000).toFixed(1)}s / 2.0s`
-   :`CONTROLLER TEST v19 | No connected gamepad`;
+   ?`CONTROLLER TEST v20 | pad ${selected.index} of ${entries.length} | ${selected.mapping||'unmapped'}\n${read(selected,4)} | ${read(selected,6)} | ${read(selected,7)}\nL2+R2: ${combo?'YES':'NO'} | Hold: ${(Math.min(elapsed,2000)/1000).toFixed(1)}s / 2.0s\n${status} | Resets sent: ${gamepadState.restartCount}`
+   :'CONTROLLER TEST v20 | No connected gamepad';
+ const banner=$('restartCountdown');
+ if(gamepadState.confirmationUntil>now){banner.textContent='NEW GAME STARTED — RELEASE L2 + R2';banner.hidden=false}
+ else if(combo&&!gamepadState.comboTriggered&&gamepadState.comboStart!==null){banner.textContent='NEW GAME IN '+Math.ceil((2000-elapsed)/1000)+'…';banner.hidden=false}
+ else banner.hidden=true;
 }
-
 function gamepadInputs(){
  const empty={move:null,fireDir:null,firing:false};
- const clear=()=>{gamepadState.l1Held=false;gamepadState.comboStart=null;gamepadState.comboTriggered=false;gamepadState.comboWasActive=false;$('restartCountdown').hidden=true};
- if(typeof navigator.getGamepads!=='function'){clear();diagnostic.textContent='CONTROLLER TEST v19 | Gamepad API unavailable';return empty}
+ const clear=()=>{gamepadState.l1Held=false;gamepadState.comboStart=null;gamepadState.comboTriggered=false;gamepadState.confirmationUntil=0;$('restartCountdown').hidden=true};
+ if(typeof navigator.getGamepads!=='function'){clear();diagnostic.textContent='CONTROLLER TEST v20 | Gamepad API unavailable';return empty}
  let pads;
  try{pads=navigator.getGamepads()}catch(_){clear();return empty}
  const pad=Array.from(pads||[]).find(p=>p&&p.connected);
- if(!pad){clear();showControllerDiagnostic(pads,null,false,0);return empty}
+ if(!pad){clear();showControllerDiagnostic(pads,null,false,0,performance.now());return empty}
  const pressed=i=>Boolean(pad.buttons[i]?.pressed);
  const axis=i=>Number.isFinite(pad.axes[i])?pad.axes[i]:0;
  const stickDir=(x,y)=>Math.hypot(x,y)>=0.28?direction(x,y):null;
@@ -101,32 +102,25 @@ function gamepadInputs(){
  const dx=Number(pressed(15))-Number(pressed(14));
  const dy=Number(pressed(13))-Number(pressed(12));
  if(dx||dy)move=direction(dx,dy);
- // Stratus XL: L1=B4 pause; L2=B6 + R2=B7 held 2s resets.
  const l1=pressed(4);
- // Diagnostics also show analog values; threshold avoids relying solely on .pressed.
  const triggerActive=i=>pressed(i)||(pad.buttons[i]?.value??0)>0.5;
- const combo=triggerActive(6)&&triggerActive(7);
+ const left=triggerActive(6),right=triggerActive(7),combo=left&&right;
  const now=performance.now();
- showControllerDiagnostic(pads,pad,combo,combo&&gamepadState.comboStart!==null?now-gamepadState.comboStart:0);
  if(combo){
-   if(gamepadState.comboStart===null && !gamepadState.comboTriggered)gamepadState.comboStart=now;
-   if(!gamepadState.comboTriggered){
-     const elapsed=now-gamepadState.comboStart;
-     if(elapsed>=2000){
-       game=reducer(game,{type:'RESET'});resetPads();
-       gamepadState.comboTriggered=true;$('restartCountdown').hidden=true;
-     }else{
-       $('restartCountdown').textContent='NEW GAME IN '+Math.ceil((2000-elapsed)/1000)+'…';
-       $('restartCountdown').hidden=false;
-     }
+   if(gamepadState.comboStart===null&&!gamepadState.comboTriggered)gamepadState.comboStart=now;
+   if(!gamepadState.comboTriggered&&now-gamepadState.comboStart>=2000){
+     game=reducer(game,{type:'RESET'});
+     resetPads();
+     gamepadState.restartCount++;
+     gamepadState.comboTriggered=true;
+     gamepadState.confirmationUntil=now+2500;
    }
  }else{
    gamepadState.comboStart=null;
-   $('restartCountdown').hidden=true;
-   // Require both triggers released before another restart is armed.
-   if(!triggerActive(6)&&!triggerActive(7))gamepadState.comboTriggered=false;
+   if(!left&&!right)gamepadState.comboTriggered=false;
  }
- // L1 toggles only on a fresh press, independent of the restart triggers.
+ const elapsed=combo&&gamepadState.comboStart!==null?now-gamepadState.comboStart:0;
+ showControllerDiagnostic(pads,pad,combo,elapsed,now);
  if(l1&&!gamepadState.l1Held)game=reducer(game,{type:'PAUSE'});
  gamepadState.l1Held=l1;
  return {move,fireDir:move,firing:pressed(0)};

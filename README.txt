@@ -1,1 +1,1 @@
-Berzerk Web v10: hides the display dimensions and keyboard instructions footer on touch-capable devices (iPad, iPhone, Android); retains it on desktop. No gameplay/control changes. Serve from this folder on port 8000.
+Berzerk v20 — restart confirmation. Copy contents of this folder to the GitHub Pages repository root, commit, and push. Check Settings for v20 restart confirmation.
